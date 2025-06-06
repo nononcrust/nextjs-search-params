@@ -2,6 +2,8 @@ import { z } from "zod/v4";
 
 const Page = z.coerce.number().int().positive();
 
+const StarRating = z.enum(["1", "2", "3", "4", "5"]).transform(Number);
+
 const Boolean = z
   .enum(["true", "false"])
   .transform((value) => value === "true");
@@ -20,7 +22,7 @@ const StringifiedArray = <T extends z.ZodType>(schema: T) =>
 const ArrayOf = <T extends readonly string[]>(value: T) =>
   StringifiedArray(z.enum(value));
 
-const Enum = <T extends readonly string[]>(value: T) => z.enum(value);
+const OneOf = <T extends readonly string[]>(value: T) => z.enum(value);
 
 export const SearchParam = {
   /**
@@ -58,5 +60,6 @@ export const SearchParam = {
    * @example
    * SearchParam.Enum(["asc", "desc"])
    */
-  Enum,
+  OneOf,
+  StarRating,
 };

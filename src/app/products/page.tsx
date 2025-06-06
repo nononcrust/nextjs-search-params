@@ -5,19 +5,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog } from "@/components/ui/dialog";
 import { RadioGroup } from "@/components/ui/radio-group";
 import { useCheckboxGroup } from "@/hooks/use-checkbox-group";
-import { useUpdateSearchParams } from "@/hooks/use-update-search-params";
+import { useQueryState } from "@/hooks/use-query-state";
 import { SearchParam } from "@/lib/search-param";
-import { FilterIcon, RotateCcwIcon } from "lucide-react";
-import { useSearchParams } from "next/navigation";
+import { useCategories } from "@/services";
+import { FilterIcon, RotateCcwIcon, StarIcon } from "lucide-react";
 import { useState } from "react";
 import { z } from "zod/v4";
-
-const CATEGORIES = ["electronics", "books", "clothing"] as const;
-const CATEGORY_LABEL: Record<(typeof CATEGORIES)[number], string> = {
-  electronics: "전자제품",
-  books: "도서",
-  clothing: "의류",
-};
 
 const SORT_OPTIONS = ["asc", "desc"] as const;
 const SORT_OPTION_LABEL: Record<(typeof SORT_OPTIONS)[number], string> = {
@@ -30,17 +23,8 @@ const defaultSearchParams = {
   sort: "asc",
   categories: [],
   instock: false,
+  rating: null,
 } as const;
-
-type ProductListPageSearchParams = z.infer<typeof ProductListPageSearchParams>;
-const ProductListPageSearchParams = z.object({
-  page: SearchParam.Page.catch(defaultSearchParams.page),
-  sort: SearchParam.Enum(SORT_OPTIONS).catch(defaultSearchParams.sort),
-  categories: SearchParam.ArrayOf(CATEGORIES).catch(
-    defaultSearchParams.categories
-  ),
-  instock: SearchParam.Boolean.catch(defaultSearchParams.instock),
-});
 
 export default function ProductListPage() {
   return (
@@ -67,35 +51,33 @@ export default function ProductListPage() {
 }
 
 const SearchOption = () => {
-  const searchParams = useSearchParams();
-  const parsedSearchParams = ProductListPageSearchParams.parse(
-    Object.fromEntries(searchParams.entries())
-  );
+  const { data: categories } = useCategories();
 
-  const { updateMultiple } =
-    useUpdateSearchParams<ProductListPageSearchParams>(defaultSearchParams);
+  const { searchParams, updateMany } = useProductListPageQueryState();
 
-  const page = parsedSearchParams.page;
-  const [sort, setSort] = useState(parsedSearchParams.sort);
-  const [inStock, setInStock] = useState(parsedSearchParams.instock);
+  const [sort, setSort] = useState(searchParams.sort);
+  const [inStock, setInStock] = useState(searchParams.instock);
+  const [rating, setRating] = useState(searchParams.rating);
+
   const categoriesCheckboxGroup = useCheckboxGroup({
-    entries: CATEGORIES,
-    initialEntries: parsedSearchParams.categories,
+    entries: categories.map((category) => category.value),
+    initialEntries: searchParams.categories,
   });
 
   const applyFilter = () => {
-    updateMultiple([
-      ["page", page],
-      ["sort", sort],
-      ["categories", categoriesCheckboxGroup.checkedItems],
-      ["instock", inStock],
-    ]);
+    updateMany({
+      sort,
+      categories: categoriesCheckboxGroup.checkedItems,
+      instock: inStock,
+      rating,
+    });
   };
 
   const resetFilter = () => {
     setSort(defaultSearchParams.sort);
     setInStock(defaultSearchParams.instock);
     categoriesCheckboxGroup.setCheckedItems(defaultSearchParams.categories);
+    setRating(null);
   };
 
   return (
@@ -109,14 +91,16 @@ const SearchOption = () => {
         ))}
       </RadioGroup>
       <span className="font-semibold text-[15px] mt-4">카테고리</span>
-      {CATEGORIES.map((category) => (
+      {categories.map((category) => (
         <Checkbox
-          key={category}
-          {...categoriesCheckboxGroup.getCheckboxProps(category)}
+          key={category.value}
+          {...categoriesCheckboxGroup.getCheckboxProps(category.value)}
         >
-          <Checkbox.Label>{CATEGORY_LABEL[category]}</Checkbox.Label>
+          <Checkbox.Label>{category.label}</Checkbox.Label>
         </Checkbox>
       ))}
+      <span className="font-semibold text-[15px] mt-4">평점</span>
+      <StarRatingRadioGroup value={rating} onChange={setRating} />
       <span className="font-semibold text-[15px] mt-4">기타</span>
       <Checkbox checked={inStock} onChange={setInStock}>
         <Checkbox.Label>재고 있는 상품만</Checkbox.Label>
@@ -132,6 +116,73 @@ const SearchOption = () => {
           </Button>
         </Dialog.Close>
       </div>
+    </div>
+  );
+};
+
+const useProductListPageQueryState = () => {
+  const { data: categories } = useCategories();
+  const categorieValues = categories.map((category) => category.value);
+
+  type ProductListPageSearchParams = z.infer<
+    typeof ProductListPageSearchParams
+  >;
+
+  const ProductListPageSearchParams = z.object({
+    page: SearchParam.Page.catch(defaultSearchParams.page),
+    sort: SearchParam.OneOf(SORT_OPTIONS).catch(defaultSearchParams.sort),
+    categories: SearchParam.ArrayOf(categorieValues).catch(
+      defaultSearchParams.categories
+    ),
+    instock: SearchParam.Boolean.catch(defaultSearchParams.instock),
+    rating: SearchParam.StarRating.nullable().catch(null),
+  });
+
+  const { searchParams, updateMany } = useQueryState(
+    ProductListPageSearchParams,
+    defaultSearchParams
+  );
+
+  return {
+    searchParams,
+    updateMany,
+  };
+};
+
+const StarRatingRadioGroup = ({
+  value,
+  onChange,
+}: {
+  value: number | null;
+  onChange: (value: number | null) => void;
+}) => {
+  const options = [1, 2, 3, 4, 5] as const;
+
+  const onClick = (option: number) => {
+    if (value === option) {
+      onChange(null);
+    } else {
+      onChange(option);
+    }
+  };
+
+  return (
+    <div className="flex gap-1">
+      {options.map((option) => (
+        <button
+          key={option}
+          onClick={() => onClick(option)}
+          aria-label={`평점 ${option}점`}
+        >
+          <StarIcon
+            className={
+              value && value >= option
+                ? "fill-yellow-400 stroke-yellow-400"
+                : "fill-gray-200 stroke-gray-200"
+            }
+          />
+        </button>
+      ))}
     </div>
   );
 };
