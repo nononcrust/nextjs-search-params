@@ -76,12 +76,7 @@ const SearchOption = () => {
   });
 
   const applyFilter = () => {
-    updateMany({
-      sort: filters.sort,
-      categories: categoriesCheckboxGroup.checkedItems,
-      instock: filters.instock,
-      rating: filters.rating,
-    });
+    updateMany(filters);
   };
 
   const resetFilter = () => {
