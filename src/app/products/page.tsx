@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog } from "@/components/ui/dialog";
 import { RadioGroup } from "@/components/ui/radio-group";
-import { useCheckboxGroup } from "@/hooks/use-checkbox-group";
+import { useControlledCheckboxGroup } from "@/hooks/use-controlled-checkbox-group";
 import { useQueryState } from "@/hooks/use-query-state";
 import { SearchParam } from "@/lib/search-param";
 import { useCategories } from "@/services";
@@ -55,35 +55,46 @@ const SearchOption = () => {
 
   const { searchParams, updateMany } = useProductListPageQueryState();
 
-  const [sort, setSort] = useState(searchParams.sort);
-  const [inStock, setInStock] = useState(searchParams.instock);
-  const [rating, setRating] = useState(searchParams.rating);
+  const defaultFilters = {
+    sort: searchParams.sort,
+    instock: searchParams.instock,
+    rating: searchParams.rating,
+    categories: searchParams.categories,
+  };
 
-  const categoriesCheckboxGroup = useCheckboxGroup({
+  const [filters, setFilters] = useState(defaultFilters);
+
+  const categoriesCheckboxGroup = useControlledCheckboxGroup({
     entries: categories.map((category) => category.value),
-    initialEntries: searchParams.categories,
+    checkedItems: filters.categories,
+    onCheckedItemsChange: (checkedItems) => {
+      setFilters((prev) => ({
+        ...prev,
+        categories: checkedItems,
+      }));
+    },
   });
 
   const applyFilter = () => {
     updateMany({
-      sort,
+      sort: filters.sort,
       categories: categoriesCheckboxGroup.checkedItems,
-      instock: inStock,
-      rating,
+      instock: filters.instock,
+      rating: filters.rating,
     });
   };
 
   const resetFilter = () => {
-    setSort(defaultSearchParams.sort);
-    setInStock(defaultSearchParams.instock);
-    categoriesCheckboxGroup.setCheckedItems(defaultSearchParams.categories);
-    setRating(null);
+    setFilters(defaultFilters);
   };
 
   return (
     <div className="p-4 flex flex-col gap-4">
       <span className="font-semibold text-[15px]">정렬</span>
-      <RadioGroup value={sort} onChange={setSort}>
+      <RadioGroup
+        value={filters.sort}
+        onChange={(sort) => setFilters((prev) => ({ ...prev, sort }))}
+      >
         {SORT_OPTIONS.map((sort) => (
           <RadioGroup.Option key={sort} value={sort}>
             {SORT_OPTION_LABEL[sort]}
@@ -100,9 +111,17 @@ const SearchOption = () => {
         </Checkbox>
       ))}
       <span className="font-semibold text-[15px] mt-4">평점</span>
-      <StarRatingRadioGroup value={rating} onChange={setRating} />
+      <StarRatingRadioGroup
+        value={filters.rating}
+        onChange={(rating) => setFilters((prev) => ({ ...prev, rating }))}
+      />
       <span className="font-semibold text-[15px] mt-4">기타</span>
-      <Checkbox checked={inStock} onChange={setInStock}>
+      <Checkbox
+        checked={filters.instock}
+        onChange={(checked) =>
+          setFilters((prev) => ({ ...prev, instock: checked }))
+        }
+      >
         <Checkbox.Label>재고 있는 상품만</Checkbox.Label>
       </Checkbox>
       <div className="flex gap-2 mt-4 justify-between">
@@ -123,10 +142,6 @@ const SearchOption = () => {
 const useProductListPageQueryState = () => {
   const { data: categories } = useCategories();
   const categorieValues = categories.map((category) => category.value);
-
-  type ProductListPageSearchParams = z.infer<
-    typeof ProductListPageSearchParams
-  >;
 
   const ProductListPageSearchParams = z.object({
     page: SearchParam.Page.catch(defaultSearchParams.page),
