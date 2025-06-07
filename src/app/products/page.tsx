@@ -65,8 +65,8 @@ const SearchOption = () => {
   const [filters, setFilters] = useState(defaultFilters);
 
   const categoriesCheckboxGroup = useControlledCheckboxGroup({
-    entries: categories.map((category) => category.value),
     checkedItems: filters.categories,
+    entries: categories.map((category) => category.value),
     onCheckedItemsChange: (checkedItems) => {
       setFilters((prev) => ({
         ...prev,
@@ -85,7 +85,12 @@ const SearchOption = () => {
   };
 
   const resetFilter = () => {
-    setFilters(defaultFilters);
+    setFilters({
+      sort: defaultSearchParams.sort,
+      instock: defaultSearchParams.instock,
+      rating: defaultSearchParams.rating,
+      categories: defaultSearchParams.categories,
+    });
   };
 
   return (
