@@ -14,7 +14,7 @@ export const useQueryState = <TSchema extends z.ZodType>(
 
   const encodeValue = (value: TSearchParams[keyof TSearchParams]) => {
     if (Array.isArray(value)) {
-      return JSON.stringify(value);
+      return value.join(",");
     }
 
     return String(value);

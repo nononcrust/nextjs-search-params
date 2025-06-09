@@ -8,19 +8,13 @@ const Boolean = z
   .enum(["true", "false"])
   .transform((value) => value === "true");
 
-const StringifiedJson = z.string().transform((value) => {
-  try {
-    return JSON.parse(value);
-  } catch {
-    return z.NEVER;
-  }
-});
-
-const StringifiedArray = <T extends z.ZodType>(schema: T) =>
-  StringifiedJson.pipe(z.array(schema).readonly());
+const CommaSeparatedStringToArray = z
+  .string()
+  .transform((value) => value.split(","))
+  .readonly();
 
 const ArrayOf = <T extends readonly string[]>(value: T) =>
-  StringifiedArray(z.enum(value));
+  CommaSeparatedStringToArray.pipe(z.array(z.enum(value)).readonly());
 
 const OneOf = <T extends readonly string[]>(value: T) => z.enum(value);
 
@@ -32,7 +26,9 @@ export const SearchParam = {
    * @example
    * SearchParam.Page.catch(1)
    *
-   * "1", "2", "3" -> 1, 2, 3
+   * "1" -> 1
+   * "2" -> 2
+   * "3" -> 3
    */
   Page,
   /**
@@ -49,16 +45,16 @@ export const SearchParam = {
    * 문자열로 이루어진 배열을 나타내는 쿼리 파라미터를 정의합니다.
    *
    * @example
-   * SearchParam.ArrayOf(["book", "clothing"])
+   * SearchParam.ArrayOf(["book", "clothing"]).catch([])
    *
-   * "[\"book\",\"clothing\"]" -> ["book", "clothing"]
+   * "book%2Cclothing" -> ["book", "clothing"]
    */
   ArrayOf,
   /**
    * 특정 문자열을 나타내는 쿼리 파라미터를 정의합니다.
    *
    * @example
-   * SearchParam.Enum(["asc", "desc"])
+   * SearchParam.Enum(["asc", "desc"]).catch("asc")
    */
   OneOf,
   StarRating,
