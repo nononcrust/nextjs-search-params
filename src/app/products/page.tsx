@@ -150,7 +150,7 @@ const useProductListPageQueryState = () => {
       defaultSearchParams.categories
     ),
     instock: SearchParam.Boolean.catch(defaultSearchParams.instock),
-    rating: SearchParam.StarRating.nullable().catch(null),
+    rating: SearchParam.StarRating.nullable().catch(defaultSearchParams.rating),
   });
 
   const { searchParams, updateMany } = useQueryState(
