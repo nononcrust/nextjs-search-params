@@ -128,8 +128,10 @@ export const useQueryState = <TSchema extends z.ZodType>(
     router.push(pathname + "?" + params.toString());
   };
 
-  const updateMany = <TKey extends keyof TSearchParams>(
-    entries: Partial<Record<keyof TKey, TSearchParams[keyof TSearchParams]>>
+  const updateMany = (
+    entries: Partial<
+      Record<keyof TSearchParams, TSearchParams[keyof TSearchParams]>
+    >
   ) => {
     const params = new URLSearchParams(searchParams.toString());
 
