@@ -90,6 +90,19 @@ export const useQueryState = <TSchema extends z.ZodType>(
   const router = useRouter();
   const pathname = usePathname();
 
+  const compareValue = (
+    a: TSearchParams[keyof TSearchParams] | undefined,
+    b: TSearchParams[keyof TSearchParams]
+  ) => {
+    if (Array.isArray(a) && Array.isArray(b)) {
+      return (
+        a.length === b.length && a.every((value, index) => value === b[index])
+      );
+    }
+
+    return a === b;
+  };
+
   const encodeValue = (value: TSearchParams[keyof TSearchParams]) => {
     if (Array.isArray(value)) {
       return value.join(",");
@@ -106,7 +119,7 @@ export const useQueryState = <TSchema extends z.ZodType>(
   ) => {
     const params = new URLSearchParams(searchParams.toString());
 
-    if (value === defaultValue[key]) {
+    if (compareValue(value, defaultValue[key])) {
       params.delete(key.toString());
     } else {
       params.set(key.toString(), encodeValue(value));
@@ -115,15 +128,13 @@ export const useQueryState = <TSchema extends z.ZodType>(
     router.push(pathname + "?" + params.toString());
   };
 
-  const updateMany = (
-    entries: Partial<
-      Record<keyof TSearchParams, TSearchParams[keyof TSearchParams]>
-    >
+  const updateMany = <TKey extends keyof TSearchParams>(
+    entries: Partial<Record<keyof TKey, TSearchParams[keyof TSearchParams]>>
   ) => {
     const params = new URLSearchParams(searchParams.toString());
 
     objectEntries(entries).forEach(([key, value]) => {
-      if (value === defaultValue[key as keyof TSearchParams]) {
+      if (compareValue(value, defaultValue[key as keyof TSearchParams])) {
         params.delete(key);
       } else {
         params.set(
