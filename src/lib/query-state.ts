@@ -82,7 +82,7 @@ export const getQueryState = async <TSchema extends z.ZodType>(
 
 export const useQueryState = <TSchema extends z.ZodType>(
   schema: TSchema,
-  defaultValues: z.infer<TSchema>
+  defaultValue: z.infer<TSchema>
 ) => {
   type TSearchParams = z.infer<TSchema>;
 
@@ -98,9 +98,7 @@ export const useQueryState = <TSchema extends z.ZodType>(
     return String(value);
   };
 
-  const parsedSearchParams = schema.parse(
-    Object.fromEntries(searchParams.entries())
-  );
+  const value = schema.parse(Object.fromEntries(searchParams.entries()));
 
   const update = <TKey extends keyof TSearchParams>(
     key: TKey,
@@ -108,7 +106,7 @@ export const useQueryState = <TSchema extends z.ZodType>(
   ) => {
     const params = new URLSearchParams(searchParams.toString());
 
-    if (value === defaultValues[key]) {
+    if (value === defaultValue[key]) {
       params.delete(key.toString());
     } else {
       params.set(key.toString(), encodeValue(value));
@@ -125,7 +123,7 @@ export const useQueryState = <TSchema extends z.ZodType>(
     const params = new URLSearchParams(searchParams.toString());
 
     objectEntries(entries).forEach(([key, value]) => {
-      if (value === defaultValues[key as keyof TSearchParams]) {
+      if (value === defaultValue[key as keyof TSearchParams]) {
         params.delete(key);
       } else {
         params.set(
@@ -151,7 +149,8 @@ export const useQueryState = <TSchema extends z.ZodType>(
   };
 
   return {
-    value: parsedSearchParams,
+    value,
+    defaultValue,
     update,
     updateMany,
     remove,

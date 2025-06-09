@@ -28,10 +28,5 @@ export const useProductListPageQueryState = () => {
     rating: Parser.StarRating.nullable().catch(defaultValue.rating),
   });
 
-  const queryState = useQueryState(ProductListPageQueryState, defaultValue);
-
-  return {
-    defaultValue,
-    ...queryState,
-  };
+  return useQueryState(ProductListPageQueryState, defaultValue);
 };
